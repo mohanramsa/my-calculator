@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"/>
+<title>Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+html { height: 100%; overflow: hidden; }
+body {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #080818;
+  font-family: 'Rajdhani', sans-serif;
+  overflow: hidden;
+  background-image:
+    radial-gradient(ellipse at 15% 10%, rgba(255,45,155,0.18) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 85%, rgba(0,229,255,0.14) 0%, transparent 45%);
+}
+
+/* DISPLAY */
+.display {
+  flex-shrink: 0;
+  background: #05050f;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid #1a1a35;
+  position: relative;
+  height: 20vh;
+  min-height: 115px;
+  max-height: 155px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.display::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, #ff2d9b, #00e5ff, #bf5af2);
+}
+.top-bar { display:flex; justify-content:space-between; align-items:center; }
+.ang-wrap {
+  display:flex; background:rgba(255,255,255,0.07);
+  border-radius:14px; padding:2px;
+}
+.ang-btn {
+  padding:3px 10px; border-radius:11px; border:none;
+  background:transparent; color:rgba(255,255,255,0.4);
+  font-family:'Rajdhani',sans-serif; font-size:0.72rem;
+  font-weight:700; letter-spacing:0.1em; cursor:pointer;
+}
+.ang-btn.on { background:linear-gradient(135deg,#bf5af2,#ff2d9b); color:#fff; }
+.mem-lbl { font-size:0.65rem; color:#bf5af2; }
+.expr-line {
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.72rem; color:rgba(255,255,255,0.3);
+  text-align:right; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap;
+}
+.num-line {
+  font-family:'Share Tech Mono',monospace;
+  font-size:clamp(1.6rem,6.5vw,2.4rem);
+  color:#f0f0ff; text-align:right;
+  text-shadow:0 0 18px rgba(0,229,255,0.3);
+  overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; line-height:1;
+}
+.num-line.err { color:#ff4060; font-size:1.1rem; }
+
+/* HISTORY */
+.hist-row {
+  flex-shrink:0; height:26px;
+  display:flex; align-items:center; gap:5px;
+  padding:0 8px; overflow-x:auto;
+  background:rgba(255,255,255,0.02);
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  scrollbar-width:none; -webkit-overflow-scrolling:touch;
+}
+.hist-row::-webkit-scrollbar { display:none; }
+.hchip {
+  flex-shrink:0;
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.62rem; color:rgba(255,255,255,0.38);
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:12px; padding:1px 8px;
+  white-space:nowrap; cursor:pointer;
+}
+
+/* BUTTON GRID */
+.btn-area {
+  flex:1; min-height:0;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  grid-template-rows:repeat(8,1fr);
+  gap:4px; padding:5px; overflow:hidden;
+}
+.btn {
+  border:none; border-radius:10px;
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
+  font-size:clamp(0.6rem,2.2vw,0.85rem);
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  width:100%; height:100%; min-height:0;
+  outline:none; -webkit-appearance:none;
+}
+.btn:active { transform:scale(0.86); filter:brightness(1.5); }
+
+.sci { background:linear-gradient(150deg,#1c1c42,#141438); color:#00e5ff; border:1px solid rgba(0,229,255,0.18); font-size:clamp(0.52rem,1.8vw,0.72rem); }
+.num { background:linear-gradient(150deg,#232348,#1a1a3c); color:#f0f0ff; font-size:clamp(0.85rem,3vw,1.05rem); }
+.op  { background:linear-gradient(150deg,#c05800,#a04800); color:#fff; box-shadow:0 2px 10px rgba(200,90,0,0.3); font-size:clamp(0.9rem,3vw,1.05rem); }
+.eq  { background:linear-gradient(150deg,#ff2d9b,#cc0078); color:#fff; box-shadow:0 2px 14px rgba(255,45,155,0.4); font-size:clamp(1rem,3.5vw,1.25rem); font-weight:900; }
+.clr { background:linear-gradient(150deg,#d02a46,#a80030); color:#fff; font-size:clamp(0.62rem,2vw,0.8rem); }
+.fn  { background:linear-gradient(150deg,#18302a,#102218); color:#00ff88; border:1px solid rgba(0,255,136,0.18); font-size:clamp(0.55rem,1.8vw,0.72rem); }
+.mem { background:linear-gradient(150deg,#281840,#1c1030); color:#bf5af2; border:1px solid rgba(191,90,242,0.22); font-size:clamp(0.52rem,1.8vw,0.72rem); }
+.span2 { grid-column:span 2; }
+</style>
+</head>
+<body>
+
+<div class="display">
+  <div class="top-bar">
+    <div class="ang-wrap">
+      <button class="ang-btn on" id="dBtn">DEG</button>
+      <button class="ang-btn"    id="rBtn">RAD</button>
+    </div>
+    <div class="mem-lbl" id="memLbl"></div>
+  </div>
+  <div class="expr-line" id="exprLine"></div>
+  <div class="num-line"  id="numLine">0</div>
+</div>
+
+<div class="hist-row" id="histRow"></div>
+<div class="btn-area"  id="btnArea"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────
+//  STATE — 4 simple variables
+// ─────────────────────────────────────────────────────────
+var num1       = null;   // stored first number
+var pendingOp  = null;   // stored operator: + - * /
+var curStr     = '0';    // what is shown on screen
+var waitingNew = false;  // TRUE = next digit starts fresh number
+
+var ang  = 'deg';
+var MEM  = 0;
+var HIST = [];
+
+// ─────────────────────────────────────────────────────────
+//  BUTTON LAYOUT
+// ─────────────────────────────────────────────────────────
+var BTNS = [
+  {l:'sin', c:'sci', a:'sin'}, {l:'cos', c:'sci', a:'cos'}, {l:'tan', c:'sci', a:'tan'},
+  {l:'log', c:'sci', a:'log'}, {l:'ln',  c:'sci', a:'ln' },
+  {l:'x²',  c:'sci', a:'sq' }, {l:'x³',  c:'sci', a:'cu' }, {l:'√',   c:'sci', a:'rt' },
+  {l:'xʸ',  c:'sci', a:'pow'}, {l:'π',   c:'sci', a:'pi' },
+  {l:'(',   c:'sci', a:'br1'}, {l:')',   c:'sci', a:'br2'}, {l:'%',   c:'sci', a:'pct'},
+  {l:'e',   c:'sci', a:'eu' }, {l:'1/x', c:'sci', a:'inv'},
+  {l:'MC',  c:'mem', a:'mc' }, {l:'MR',  c:'mem', a:'mr' }, {l:'M+',  c:'mem', a:'mp' },
+  {l:'AC',  c:'clr', a:'ac' }, {l:'⌫',   c:'clr', a:'bs' },
+  {l:'7',   c:'num', a:'7'  }, {l:'8',   c:'num', a:'8'  }, {l:'9',   c:'num', a:'9'  },
+  {l:'÷',   c:'op',  a:'/'  }, {l:'±',   c:'fn',  a:'pm' },
+  {l:'4',   c:'num', a:'4'  }, {l:'5',   c:'num', a:'5'  }, {l:'6',   c:'num', a:'6'  },
+  {l:'×',   c:'op',  a:'*'  }, {l:'!',   c:'fn',  a:'fac'},
+  {l:'1',   c:'num', a:'1'  }, {l:'2',   c:'num', a:'2'  }, {l:'3',   c:'num', a:'3'  },
+  {l:'−',   c:'op',  a:'-'  }, {l:'abs', c:'fn',  a:'abs'},
+  {l:'0',   c:'num span2',a:'0'},
+  {l:'.',   c:'num', a:'.'  },
+  {l:'+',   c:'op',  a:'+'  },
+  {l:'=',   c:'eq',  a:'eq' }
+];
+
+// ─────────────────────────────────────────────────────────
+//  BUILD BUTTONS
+// ─────────────────────────────────────────────────────────
+function buildBtns() {
+  var area = document.getElementById('btnArea');
+  area.innerHTML = '';
+  for (var i = 0; i < BTNS.length; i++) {
+    (function(b) {
+      var el = document.createElement('button');
+      el.textContent = b.l;
+      el.className = 'btn ' + b.c;
+      el.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        press(b.a);
+      }, {passive: false});
+      el.addEventListener('click', function() { press(b.a); });
+      area.appendChild(el);
+    })(BTNS[i]);
+  }
+  document.getElementById('dBtn').addEventListener('touchend', function(e){ e.preventDefault(); setAng('deg'); }, {passive:false});
+  document.getElementById('rBtn').addEventListener('touchend', function(e){ e.preventDefault(); setAng('rad'); }, {passive:false});
+  document.getElementById('dBtn').addEventListener('click', function(){ setAng('deg'); });
+  document.getElementById('rBtn').addEventListener('click', function(){ setAng('rad'); });
+}
+
+// ─────────────────────────────────────────────────────────
+//  PRESS — main handler
+// ─────────────────────────────────────────────────────────
+function press(a) {
+
+  // ── DIGITS 0-9 ───────────────────────────────────────
+  if ('0123456789'.indexOf(a) >= 0) {
+    if (waitingNew) {
+      curStr = a;          // START fresh — this is the fix!
+      waitingNew = false;
+    } else {
+      if (curStr === '0') curStr = a;
+      else curStr += a;
+    }
+    draw();
+    return;
+  }
+
+  // ── DECIMAL POINT ────────────────────────────────────
+  if (a === '.') {
+    if (waitingNew) {
+      curStr = '0.';
+      waitingNew = false;
+      draw(); return;
+    }
+    if (curStr.indexOf('.') < 0) curStr += '.';
+    draw();
+    return;
+  }
+
+  // ── OPERATOR: + - * / ────────────────────────────────
+  if (a === '+' || a === '-' || a === '*' || a === '/') {
+    var cur = parseFloat(curStr);
+
+    // If operator already pending AND user typed a number → calculate chain
+    if (pendingOp !== null && !waitingNew) {
+      var mid = calculate(num1, pendingOp, cur);
+      if (mid === null) return;
+      num1 = mid;
+      curStr = fmtNum(mid);
+    } else {
+      // Store current number as num1
+      num1 = cur;
+    }
+
+    pendingOp  = a;
+    waitingNew = true;   // CRITICAL: next digit will start fresh
+    drawExpr(fmtNum(num1) + ' ' + opSym(a));
+    return;
+  }
+
+  // ── EQUALS ───────────────────────────────────────────
+  if (a === 'eq') {
+    if (pendingOp === null || num1 === null) {
+      draw();
+      return;
+    }
+    var n2  = parseFloat(curStr);
+    var res = calculate(num1, pendingOp, n2);
+    if (res === null) return;
+
+    var exStr = fmtNum(num1) + ' ' + opSym(pendingOp) + ' ' + fmtNum(n2) + ' =';
+    addHist(exStr, res);
+
+    curStr     = fmtNum(res);
+    num1       = null;
+    pendingOp  = null;
+    waitingNew = true;
+    drawResult(exStr);
+    return;
+  }
+
+  // ── POWER xʸ ─────────────────────────────────────────
+  if (a === 'pow') {
+    var cur2 = parseFloat(curStr);
+    if (pendingOp !== null && !waitingNew) {
+      var mid2 = calculate(num1, pendingOp, cur2);
+      if (mid2 === null) return;
+      num1 = mid2; curStr = fmtNum(mid2);
+    } else {
+      num1 = cur2;
+    }
+    pendingOp  = '^';
+    waitingNew = true;
+    drawExpr(fmtNum(num1) + ' ^');
+    return;
+  }
+
+  // ── CLEAR ────────────────────────────────────────────
+  if (a === 'ac') {
+    curStr = '0'; num1 = null; pendingOp = null; waitingNew = false;
+    document.getElementById('numLine').className = 'num-line';
+    document.getElementById('exprLine').textContent = '';
+    draw();
+    return;
+  }
+
+  // ── BACKSPACE ────────────────────────────────────────
+  if (a === 'bs') {
+    if (waitingNew) { curStr='0'; num1=null; pendingOp=null; waitingNew=false; }
+    else if (curStr.length <= 1) curStr = '0';
+    else curStr = curStr.slice(0, -1);
+    draw();
+    return;
+  }
+
+  // ── PLUS/MINUS ───────────────────────────────────────
+  if (a === 'pm') {
+    var n = parseFloat(curStr);
+    curStr = fmtNum(-n);
+    draw();
+    return;
+  }
+
+  // ── CONSTANTS ────────────────────────────────────────
+  if (a === 'pi') { curStr = fmtNum(Math.PI); waitingNew = true; drawResult('π'); return; }
+  if (a === 'eu') { curStr = fmtNum(Math.E);  waitingNew = true; drawResult('e'); return; }
+
+  // ── MEMORY ───────────────────────────────────────────
+  if (a === 'mc') { MEM = 0; showMem('MC'); return; }
+  if (a === 'mr') { curStr = fmtNum(MEM); waitingNew = true; showMem('MR'); draw(); return; }
+  if (a === 'mp') { MEM += parseFloat(curStr) || 0; showMem('M+'); return; }
+
+  // ── SCIENTIFIC FUNCTIONS ─────────────────────────────
+  var n = parseFloat(curStr);
+  if (isNaN(n)) { showErr('Need number'); return; }
+  var res2, lbl;
+  var rad = ang === 'deg' ? Math.PI / 180 : 1;
+
+  if      (a==='sin') { res2=Math.sin(n*rad);   lbl='sin('+fmtNum(n)+')'; }
+  else if (a==='cos') { res2=Math.cos(n*rad);   lbl='cos('+fmtNum(n)+')'; }
+  else if (a==='tan') {
+    if (ang==='deg' && n%180===90) { showErr('Undefined'); return; }
+    res2=Math.tan(n*rad); lbl='tan('+fmtNum(n)+')';
+  }
+  else if (a==='log') { if(n<=0){showErr('Domain Err');return;} res2=Math.log10(n); lbl='log('+fmtNum(n)+')'; }
+  else if (a==='ln')  { if(n<=0){showErr('Domain Err');return;} res2=Math.log(n);   lbl='ln('+fmtNum(n)+')';  }
+  else if (a==='sq')  { res2=n*n;         lbl='('+fmtNum(n)+')²'; }
+  else if (a==='cu')  { res2=n*n*n;       lbl='('+fmtNum(n)+')³'; }
+  else if (a==='rt')  { if(n<0){showErr('Domain Err');return;} res2=Math.sqrt(n); lbl='√('+fmtNum(n)+')'; }
+  else if (a==='pct') { res2=n/100;       lbl=fmtNum(n)+'%'; }
+  else if (a==='inv') { if(n===0){showErr('Div/Zero');return;} res2=1/n; lbl='1/('+fmtNum(n)+')'; }
+  else if (a==='abs') { res2=Math.abs(n); lbl='|'+fmtNum(n)+'|'; }
+  else if (a==='fac') {
+    var fn2 = Math.round(Math.abs(n));
+    res2 = fn2>170 ? Infinity : fact(fn2);
+    lbl = fn2+'!';
+  }
+  else if (a==='br1') { if(waitingNew){curStr='(';waitingNew=false;} else curStr+='('; draw(); return; }
+  else if (a==='br2') { curStr+=')'; draw(); return; }
+  else return;
+
+  if (!isFinite(res2)) { showErr('Overflow'); return; }
+  res2 = rd(res2);
+  addHist(lbl+' =', res2);
+  curStr = fmtNum(res2);
+  waitingNew = true;
+  drawResult(lbl+' =');
+}
+
+// ─────────────────────────────────────────────────────────
+//  CALCULATE — the single trusted function
+// ─────────────────────────────────────────────────────────
+function calculate(a, op, b) {
+  var r;
+  if      (op === '+') r = a + b;
+  else if (op === '-') r = a - b;
+  else if (op === '*') r = a * b;
+  else if (op === '/') {
+    if (b === 0) { showErr('Div by Zero'); return null; }
+    r = a / b;
+  }
+  else if (op === '^') r = Math.pow(a, b);
+  else return null;
+
+  if (!isFinite(r)) { showErr('Overflow'); return null; }
+  return rd(r);
+}
+
+// ─────────────────────────────────────────────────────────
+//  DISPLAY HELPERS
+// ─────────────────────────────────────────────────────────
+function draw() {
+  var d = document.getElementById('numLine');
+  d.className = 'num-line';
+  d.textContent = curStr || '0';
+}
+
+function drawExpr(expr) {
+  draw();
+  document.getElementById('exprLine').textContent = expr;
+}
+
+function drawResult(expr) {
+  var d = document.getElementById('numLine');
+  d.className = 'num-line';
+  d.textContent = curStr || '0';
+  document.getElementById('exprLine').textContent = expr;
+}
+
+function showErr(msg) {
+  var d = document.getElementById('numLine');
+  d.className = 'num-line err';
+  d.textContent = msg;
+  document.getElementById('exprLine').textContent = '';
+  curStr='0'; num1=null; pendingOp=null; waitingNew=false;
+}
+
+function fmtNum(n) {
+  if (n === null || isNaN(n)) return '0';
+  var r = rd(n);
+  if (Math.abs(r) >= 1e13 || (Math.abs(r) < 1e-8 && r !== 0))
+    return r.toExponential(4);
+  return r.toString();
+}
+
+function rd(n) { return Math.round(n * 1e10) / 1e10; }
+
+function opSym(o) {
+  if (o==='+') return '+';
+  if (o==='-') return '−';
+  if (o==='*') return '×';
+  if (o==='/') return '÷';
+  if (o==='^') return '^';
+  return o;
+}
+
+function fact(n) { return n <= 1 ? 1 : n * fact(n-1); }
+
+// ─────────────────────────────────────────────────────────
+//  ANGLE / MEMORY / HISTORY
+// ─────────────────────────────────────────────────────────
+function setAng(mode) {
+  ang = mode;
+  document.getElementById('dBtn').className = 'ang-btn'+(mode==='deg'?' on':'');
+  document.getElementById('rBtn').className = 'ang-btn'+(mode==='rad'?' on':'');
+}
+
+function showMem(lbl) {
+  var m = document.getElementById('memLbl');
+  m.textContent = lbl+(MEM!==0?': '+fmtNum(MEM):'');
+  setTimeout(function(){ m.textContent = MEM!==0 ? 'M:'+fmtNum(MEM) : ''; }, 1000);
+}
+
+function addHist(expr, res) {
+  HIST.unshift({e:expr, r:res});
+  if (HIST.length > 6) HIST.pop();
+  renderHist();
+}
+
+function renderHist() {
+  var row = document.getElementById('histRow');
+  if (!HIST.length) { row.innerHTML=''; return; }
+  var html = '';
+  for (var i=0; i<HIST.length; i++)
+    html += '<div class="hchip" data-i="'+i+'">'+HIST[i].r+'</div>';
+  row.innerHTML = html;
+  var chips = row.querySelectorAll('.hchip');
+  for (var j=0; j<chips.length; j++) {
+    (function(chip){
+      chip.addEventListener('touchend', function(e){
+        e.preventDefault();
+        var idx = parseInt(this.getAttribute('data-i'));
+        curStr = fmtNum(HIST[idx].r);
+        waitingNew = true;
+        drawResult(HIST[idx].e);
+      }, {passive:false});
+      chip.addEventListener('click', function(){
+        var idx = parseInt(this.getAttribute('data-i'));
+        curStr = fmtNum(HIST[idx].r);
+        waitingNew = true;
+        drawResult(HIST[idx].e);
+      });
+    })(chips[j]);
+  }
+}
+
+// Keyboard
+document.addEventListener('keydown', function(e){
+  var k = e.key;
+  if(k>='0'&&k<='9') press(k);
+  else if(k==='.') press('.');
+  else if(k==='+') press('+');
+  else if(k==='-') press('-');
+  else if(k==='*') press('*');
+  else if(k==='/'){e.preventDefault();press('/');}
+  else if(k==='Enter'||k==='=') press('eq');
+  else if(k==='Backspace') press('bs');
+  else if(k==='Escape') press('ac');
+});
+
+// INIT
+buildBtns();
+draw();
+</script>
+</body>
+</html>
